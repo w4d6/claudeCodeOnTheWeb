@@ -7,6 +7,39 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import json
 import sys
+import re
+
+
+def clean_title(title):
+    """
+    記事タイトルから不要な情報を削除
+
+    Args:
+        title: 元のタイトル
+
+    Returns:
+        クリーニングされたタイトル
+    """
+    if not title:
+        return title
+
+    # 先頭の数字を削除（例：「1」「2」など）
+    title = re.sub(r'^\d+', '', title)
+
+    # 末尾の配信元と日時情報を削除（複数パターンに対応）
+    # パターン1: 「東スポWEB11/6(木)14:55」「スポーツ報知11/6(木)12:20」
+    title = re.sub(r'[^\s　]+\d{1,2}/\d{1,2}\([月火水木金土日]\)\d{1,2}:\d{2}.*$', '', title)
+
+    # パターン2: 残った配信元情報（全角・半角スペース + カタカナ・漢字の組み合わせ + 日付）
+    title = re.sub(r'[　\s][^\s　]*[^\s　]*\d{1,2}/\d{1,2}.*$', '', title)
+
+    # パターン3: タイムスタンプのみが残っている場合
+    title = re.sub(r'\d{1,2}:\d{2}.*$', '', title)
+
+    # 前後の空白を削除
+    title = title.strip()
+
+    return title
 
 
 def scrape_yahoo_news(num_articles=5):
@@ -48,16 +81,19 @@ def scrape_yahoo_news(num_articles=5):
             topics = soup.find_all('a', href=True)
             topics = [t for t in topics if '/articles/' in t.get('href', '')]
 
-        for i, topic in enumerate(topics[:num_articles]):
+        for i, topic in enumerate(topics):
             try:
                 title = topic.get_text(strip=True)
+                # タイトルをクリーニング
+                title = clean_title(title)
                 link = topic.get('href', '')
 
                 # 相対URLの場合は絶対URLに変換
                 if link.startswith('/'):
                     link = 'https://news.yahoo.co.jp' + link
 
-                if title and link:
+                # タイトルとURLが有効で、タイトルが十分な長さの場合のみ追加
+                if title and link and len(title) > 10:
                     articles.append({
                         'title': title,
                         'url': link,
