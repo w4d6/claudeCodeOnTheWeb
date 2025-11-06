@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 import sys
 import re
+import os
 
 
 def clean_title(title):
@@ -149,9 +150,12 @@ def main():
         print(f"{i}. {article['title']}")
         print(f"   URL: {article['url']}\n")
 
-    # JSONファイルに保存
-    save_articles(articles)
-    print(f"記事をyahoo_news.jsonに保存しました")
+    # JSONファイルに保存（実行時間をファイル名に含める）
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'yahoo_news_{timestamp}.json'
+    save_articles(articles, filename)
+    print(f"記事を{filename}に保存しました")
+    print(f"保存場所: {os.path.abspath(filename)}")
 
 
 if __name__ == '__main__':
