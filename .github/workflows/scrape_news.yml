@@ -1,0 +1,55 @@
+name: Yahoo News Scraper
+
+on:
+  # 定期実行: 毎日午前9時（UTC 0:00 = JST 9:00）
+  schedule:
+    - cron: '0 0 * * *'
+
+  # 手動実行も可能にする
+  workflow_dispatch:
+
+  # プッシュ時にもテスト実行
+  push:
+    branches:
+      - main
+      - 'claude/**'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        run: |
+          python scrape_yahoo_news.py
+
+      - name: Upload results
+        uses: actions/upload-artifact@v3
+        with:
+          name: yahoo-news-${{ github.run_number }}
+          path: yahoo_news.json
+          retention-days: 30
+
+      - name: Display results
+        if: always()
+        run: |
+          if [ -f yahoo_news.json ]; then
+            echo "=== Scraped Articles ==="
+            cat yahoo_news.json
+          else
+            echo "No results file found"
+          fi
